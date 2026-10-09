@@ -126,7 +126,7 @@ def get_logs():
     return response.data
   except Exception as e:
     print(f"Error fetching logs: {e}")
-    # หากเกิดข้อผิดพลาด ให้ส่งเป็น Array ว่าง เพื่อไม่ให้หน้าเว็บขึ้น 500
+
     return []
 @app.get("/api/health")
 def read_root():

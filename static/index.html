@@ -58,30 +58,37 @@
   </table>
 
   <script>
+
     async function updateDashboard() {
       try {
         const res = await fetch('/api/logs');
         const data = await res.json();
         
-        if (data && data.length > 0) {
+        console.log("ข้อมูลจาก API:", data);
+
+        if (Array.isArray(data) && data.length > 0) {
           const latest = data[0];
           
+          // 1. อัปเดตการ์ดสถานะการล้ม
           const fallElem = document.getElementById('fall-status');
           if (latest.fall_detected) {
             fallElem.innerHTML = '<span class="status-alert">⚠️ ตรวจพบล้ม!</span>';
           } else {
             fallElem.innerHTML = '<span class="status-normal">ปกติ</span>';
           }
-          document.getElementById('temp').innerText = latest.temperature + ' °C';
-          document.getElementById('humid').innerText = latest.humidity + ' %';
 
+          // 2. อัปเดตอุณหภูมิและความชื้น
+          document.getElementById('temp').innerText = (latest.temperature ?? '-') + ' °C';
+          document.getElementById('humid').innerText = (latest.humidity ?? '-') + ' %';
+
+          // 3. อัปเดตตารางประวัติ (ใช้ created_at ให้ตรงกับ Supabase)
           const tbody = document.getElementById('log-table-body');
           tbody.innerHTML = data.map(item => `
             <tr>
-              <td>${new Date(item.created_at).toLocaleString('th-TH')}</td>
-              <td>${item.fall_detected ? '<span class="status-alert">ตรวจพบล้ม</span>' : 'ปกติ'}</td>
-              <td>${item.temperature}</td>
-              <td>${item.humidity}</td>
+              <td>${item.created_at ? new Date(item.created_at).toLocaleString('th-TH') : '-'}</td>
+              <td>${item.fall_detected ? '<span class="status-alert">ตรวจพบล้ม</span>' : '<span class="status-normal">ปกติ</span>'}</td>
+              <td>${item.temperature ?? '-'}</td>
+              <td>${item.humidity ?? '-'}</td>
             </tr>
           `).join('');
         }
@@ -89,6 +96,11 @@
         console.error("โหลดข้อมูลล้มเหลว:", err);
       }
     }
+
+    // เรียกทันทีตอนเปิดหน้าเว็บ และวนซ้ำทุก 2 วินาที
+    updateDashboard();
+    setInterval(updateDashboard, 2000);
+  </script>
 
     updateDashboard();
     setInterval(updateDashboard, 2000);
