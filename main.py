@@ -110,24 +110,20 @@ async def receive_api_telemetry(data: TelemetryData):
         raise HTTPException(status_code=500, detail=str(e))
 # ดึงข้อมูลจาก Supabase ส่งให้ Dashboard
 # ดึงข้อมูลจาก Supabase ส่งให้ Dashboard
+# ดึงข้อมูลจาก Supabase ส่งให้ Dashboard
 @app.get("/api/logs")
 def get_logs():
-  try:
-    if supabase is None:
-      return []
-    # ดึงข้อมูลจากตาราง sensor_logs เรียงลำดับจากล่าสุด
-    response = (
-        supabase.table("sensor_logs")
-        .select("*")
-        .order("id", desc=True)
-        .limit(10)
-        .execute()
-    )
-    return response.data
-  except Exception as e:
-    print(f"Error fetching logs: {e}")
-
-    return []
+    try:
+        if supabase is None:
+            print("Supabase client is None")
+            return []
+        # เปลี่ยนมาเรียงตาม id จากมากไปน้อย (ล่าสุด)
+        response = supabase.table("sensor_logs").select("*").order("id", desc=True).limit(10).execute()
+        print(f"Data fetched: {response.data}")
+        return response.data
+    except Exception as e:
+        print(f"Error fetching logs from Supabase: {e}")
+        return []
 @app.get("/api/health")
 def read_root():
     return {"status": "FastAPI is running"}
