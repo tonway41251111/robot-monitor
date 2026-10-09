@@ -17,7 +17,7 @@ app = FastAPI()
 
 # 🔻 วางค่า Supabase ของคุณตรงนี้ 🔻
 SUPABASE_URL = "https://inpjkkpdpbuouxqvnywc.supabase.co"
-SUPABASE_KEY = "sb_secret_nhlHoFiFXxPpSfE5BknFuQ_Y_87pZ5J"  # วาง key ตัวยาวที่ขึ้นต้นด้วย eyJhbGciOi
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlucGpra3BkcGJ1b3V4cXZueXdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0Njg1NjAsImV4cCI6MjEwNzA0NDU2MH0.wZm8bGndtFlVoNmmyGkc65o1i2I2OaOkKRRghfO5xS8"  # วาง key ตัวยาวที่ขึ้นต้นด้วย eyJhbGciOi
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # LINE Messaging API (ใส่ Token เมื่อพร้อมใช้งาน)
@@ -43,16 +43,20 @@ class SensorPayload(BaseModel):
 
 # สตรีมภาพกล้อง MJPEG
 def generate_frames():
-    camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    camera = cv2.VideoCapture(0)
+    if not camera.isOpened():
+      return
     while True:
-        success, frame = camera.read()
-        if not success:
-            break
-        else:
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame_bytes = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+      success, frame = camera.read()
+      if not success:
+        break
+      ret, buffer = cv2.imencode('.jpg', frame)
+      if not ret:
+        break
+      yield (
+          b'--frame\r\n'
+          b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n'
+      )
     camera.release()
 
 @app.get("/video_feed")
@@ -105,11 +109,25 @@ async def receive_api_telemetry(data: TelemetryData):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 # ดึงข้อมูลจาก Supabase ส่งให้ Dashboard
+# ดึงข้อมูลจาก Supabase ส่งให้ Dashboard
 @app.get("/api/logs")
 def get_logs():
-    response = supabase.table("sensor_logs").select("*").order("id", desc=True).limit(10).execute()
+  try:
+    if supabase is None:
+      return []
+    # ดึงข้อมูลจากตาราง sensor_logs เรียงลำดับจากล่าสุด
+    response = (
+        supabase.table("sensor_logs")
+        .select("*")
+        .order("id", desc=True)
+        .limit(10)
+        .execute()
+    )
     return response.data
-
+  except Exception as e:
+    print(f"Error fetching logs: {e}")
+    # หากเกิดข้อผิดพลาด ให้ส่งเป็น Array ว่าง เพื่อไม่ให้หน้าเว็บขึ้น 500
+    return []
 @app.get("/api/health")
 def read_root():
     return {"status": "FastAPI is running"}

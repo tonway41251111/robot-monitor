@@ -78,7 +78,7 @@
           const tbody = document.getElementById('log-table-body');
           tbody.innerHTML = data.map(item => `
             <tr>
-              <td>${new Date(item.timestamp).toLocaleString('th-TH')}</td>
+              <td>${new Date(item.created_at).toLocaleString('th-TH')}</td>
               <td>${item.fall_detected ? '<span class="status-alert">ตรวจพบล้ม</span>' : 'ปกติ'}</td>
               <td>${item.temperature}</td>
               <td>${item.humidity}</td>
